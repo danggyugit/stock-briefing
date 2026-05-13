@@ -1,0 +1,74 @@
+# stock_briefing
+
+매일 아침 전일 미국 증시를 요약해 Telegram으로 보내는 자동화 도구. **모든 API가 무료.**
+
+## 빠른 시작 (5단계)
+
+### 1. 패키지 설치
+```bash
+cd c:/Users/sk15y/claude/stock_briefing
+pip install -r requirements.txt
+```
+
+### 2. Gemini API 키 발급 (무료)
+1. https://aistudio.google.com/apikey 접속 → "Create API key"
+2. 발급된 키 복사
+3. 하루 1,500회 무료 — 이 프로젝트는 하루 1회만 호출
+
+### 3. Telegram 봇 만들기 (5분)
+1. Telegram 앱에서 **@BotFather** 검색 → `/newbot` 입력
+2. 봇 이름·username 입력하면 **봇 토큰** 발급됨 (예: `123456:ABC...`)
+3. 만든 봇을 **본인이 먼저 /start** 로 말 걸기
+4. 브라우저에서 `https://api.telegram.org/bot<토큰>/getUpdates` 접속
+5. 응답에서 `"chat":{"id": 123456789}` 숫자가 본인 **chat_id**
+
+### 4. .env 작성
+```bash
+cp .env.example .env
+```
+파일 열어서 `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` 채우기.
+
+### 5. 테스트 → 자동 등록
+```bash
+python notifier.py   # 텔레그램 연결 테스트
+python main.py       # 실제 브리핑 한 번 실행
+
+register_scheduler.bat   # 매일 07:00 자동 실행 등록
+```
+
+## 무엇이 오는가
+
+```
+🇺🇸 전일 미국 증시 브리핑
+2026-04-20 (Mon) 07:00 KST
+──────────────────────
+
+📊 지수 한눈에
+S&P 500은 0.8% 상승 마감. AI 반도체 주도로 나스닥이 …
+
+🌏 매크로
+10년물 금리가 4.2%로 하락하며 기술주 강세를 뒷받침 …
+
+🔥 종목 이슈
+- NVDA: 신제품 발표 기대로 3% 급등
+- TSLA: 배송 지연 보도에 2% 하락
+…
+
+📰 핵심 뉴스
+- 연준 파월 의장, 금리 인하 시점 시사
+- 중동 지정학 리스크 완화 신호
+…
+
+💡 오늘의 관전 포인트
+반도체 ETF 흐름이 한국 개장에도 영향 예상.
+```
+
+## 비용
+
+| 항목 | 비용 |
+|---|---|
+| Gemini 2.0 Flash | 무료 (일 1,500회) |
+| yfinance | 무료 |
+| Finnhub (선택) | 무료 (분 60회) |
+| Telegram Bot | 무료 |
+| **합계** | **월 0원** |
