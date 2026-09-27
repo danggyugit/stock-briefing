@@ -61,13 +61,45 @@ fi
 log_line INFO "start stock_briefing --mode $MODE"
 cd "$REPO" || exit 1
 
-if "$VENV_PY" main.py --mode "$MODE" >> "$LOG" 2>&1; then
+# caffeinate: keep the Mac from going back to sleep while the briefing runs
+# (-i idle sleep, -s system sleep on AC). The Mac is usually freshly woken by
+# a pmset schedule at this point, so without this it could nod off mid-run.
+if /usr/bin/caffeinate -i -s "$VENV_PY" main.py --mode "$MODE" >> "$LOG" 2>&1; then
   log_line INFO "done"
   rc=0
 else
   rc=$?
   log_line ERROR "main.py exit $rc"
 fi
+
+# ── Schedule the next wake (chain) ────────────────────────────────
+# morning → 13:55 today, midday → 20:55 today, preview → 06:55 tomorrow.
+# A daily safety net (`pmset repeat wakeorpoweron MTWRFSU 06:55:00`) restarts
+# the chain if any link is missed. Needs passwordless sudo for pmset:
+#   /etc/sudoers.d/pmset-briefing
+#   danggyu ALL=(root) NOPASSWD: /usr/bin/pmset schedule *, /usr/bin/pmset repeat *
+# Wake only fires with the power adapter connected and the lid open (or clamshell).
+schedule_next_wake() {
+  local target
+  case "$MODE" in
+    morning) target="$(date '+%m/%d/%y') 13:55:00" ;;
+    midday)  target="$(date '+%m/%d/%y') 20:55:00" ;;
+    preview) target="$(date -v+1d '+%m/%d/%y') 06:55:00" ;;
+  esac
+  local target_epoch now_epoch
+  target_epoch=$(date -j -f '%m/%d/%y %H:%M:%S' "$target" '+%s' 2>/dev/null) || return 0
+  now_epoch=$(date '+%s')
+  if [ "$target_epoch" -le "$now_epoch" ]; then
+    log_line INFO "next wake $target already passed — not scheduling"
+    return 0
+  fi
+  if /usr/bin/sudo -n /usr/bin/pmset schedule wake "$target" >> "$LOG" 2>&1; then
+    log_line INFO "scheduled wake at $target"
+  else
+    log_line WARN "could not schedule wake (sudoers for pmset not set up?)"
+  fi
+}
+schedule_next_wake
 
 # 30-day log retention
 find "$LOGDIR" -maxdepth 1 -type f -name '*.log' -mtime +30 -delete 2>/dev/null || true

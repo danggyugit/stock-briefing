@@ -60,7 +60,22 @@ done
 - 로그: `logs/launchd/<mode>-YYYYMMDD-HHMMSS.log` (30일 보관)
 - 즉시 실행: `launchctl kickstart gui/$(id -u)/com.danggyu.stockbriefing.morning`
 - 해제: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.danggyu.stockbriefing.morning.plist`
-- Mac이 잠자기 상태면 실행되지 않으므로 전원 설정에서 잠자기 방지 필요
+- 06:56 `com.danggyu.stockbriefing.keep-awake`: `keep_awake.sh`가 caffeinate로 75분간 깨어 있게 유지 (stock-dashboard 07:00~07:30 job + 08:00 브리핑 커버)
+
+### 잠자기 중 자동 기상 (pmset)
+
+launchd는 잠자기 중엔 실행되지 않으므로 pmset 예약 기상으로 깨운다. **전원 어댑터 연결 + 덮개 열림(또는 클램쉘)** 조건에서만 동작.
+
+1. wrapper가 실행 끝에 다음 슬롯을 예약 (morning→13:55, midday→20:55, preview→익일 06:55). launchd에서는 비밀번호 입력이 불가하므로 pmset만 NOPASSWD 허용:
+   ```bash
+   sudo install -m 440 scripts/launchd/sudoers-pmset-briefing /etc/sudoers.d/pmset-briefing
+   sudo visudo -c
+   ```
+2. 안전망으로 매일 06:55 반복 기상 등록 (체인이 끊겨도 아침에 재시작):
+   ```bash
+   sudo pmset repeat wakeorpoweron MTWRFSU 06:55:00
+   pmset -g sched   # 확인
+   ```
 
 ## 무엇이 오는가
 
