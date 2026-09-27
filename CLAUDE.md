@@ -14,7 +14,8 @@
 | `collectors/news.py` | Finnhub 뉴스 (폴백: Yahoo RSS) |
 | `summarizer.py` | Gemini 2.0 Flash로 한국어 브리핑 생성 |
 | `notifier.py` | Telegram 전송 (HTML, 4000자 단위 분할) |
-| `register_scheduler.bat` | Windows 작업 스케줄러 매일 07:00 등록 |
+| `register_scheduler.bat` | Windows 작업 스케줄러 등록 (08/14/21시) |
+| `scripts/launchd/run_brief.sh` | macOS launchd wrapper (plist: `~/Library/LaunchAgents/com.danggyu.stockbriefing.*`) |
 | `logs/` | 생성된 브리핑 텍스트·오류 로그 |
 
 ---
@@ -46,7 +47,8 @@ python notifier.py             # Telegram 연결 확인
 python main.py
 
 # 매일 자동 실행 등록
-register_scheduler.bat
+register_scheduler.bat            # Windows
+# macOS: README의 'macOS 자동 실행 (launchd)' 참고
 ```
 
 ---

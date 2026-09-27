@@ -36,6 +36,32 @@ python main.py       # 실제 브리핑 한 번 실행
 register_scheduler.bat   # 매일 07:00 자동 실행 등록
 ```
 
+## macOS 자동 실행 (launchd)
+
+Windows 작업 스케줄러 대신 Mac에서는 launchd로 동일한 3개 시간대에 실행한다.
+
+```bash
+cd ~/claude/stock-briefing
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env   # 키 채우기
+
+# plist 등록 (최초 1회) — ~/Library/LaunchAgents/com.danggyu.stockbriefing.{morning,midday,preview}.plist
+for m in morning midday preview; do
+  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.danggyu.stockbriefing.$m.plist
+done
+```
+
+| 시각 (KST) | Label | 실행 |
+|---|---|---|
+| 08:00 | `com.danggyu.stockbriefing.morning` | `scripts/launchd/run_brief.sh morning` |
+| 14:00 | `com.danggyu.stockbriefing.midday` | `scripts/launchd/run_brief.sh midday` |
+| 21:00 | `com.danggyu.stockbriefing.preview` | `scripts/launchd/run_brief.sh preview` |
+
+- 로그: `logs/launchd/<mode>-YYYYMMDD-HHMMSS.log` (30일 보관)
+- 즉시 실행: `launchctl kickstart gui/$(id -u)/com.danggyu.stockbriefing.morning`
+- 해제: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.danggyu.stockbriefing.morning.plist`
+- Mac이 잠자기 상태면 실행되지 않으므로 전원 설정에서 잠자기 방지 필요
+
 ## 무엇이 오는가
 
 ```
