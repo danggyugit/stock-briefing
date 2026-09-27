@@ -60,13 +60,27 @@ done
 - 로그: `logs/launchd/<mode>-YYYYMMDD-HHMMSS.log` (30일 보관)
 - 즉시 실행: `launchctl kickstart gui/$(id -u)/com.danggyu.stockbriefing.morning`
 - 해제: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.danggyu.stockbriefing.morning.plist`
-- 06:56 `com.danggyu.stockbriefing.keep-awake`: `keep_awake.sh`가 caffeinate로 75분간 깨어 있게 유지 (stock-dashboard 07:00~07:30 job + 08:00 브리핑 커버)
-
-### 잠자기 중 자동 기상 (pmset)
+### 잠자기 중 자동 기상 (pmset + wake_chain.sh)
 
 launchd는 잠자기 중엔 실행되지 않으므로 pmset 예약 기상으로 깨운다. **전원 어댑터 연결 + 덮개 열림(또는 클램쉘)** 조건에서만 동작.
 
-1. wrapper가 실행 끝에 다음 슬롯을 예약 (morning→13:55, midday→20:55, preview→익일 06:55). launchd에서는 비밀번호 입력이 불가하므로 pmset만 NOPASSWD 허용:
+`scripts/launchd/wake_chain.sh`가 슬롯 목록을 갖고 있고, 각 슬롯 1분 뒤에 launchd keeper(`com.danggyu.stockbriefing.wake-HHMM`)가 이를 실행한다.
+keeper는 (1) 다음 슬롯을 `pmset schedule wake`로 예약하고, (2) grace 시간 동안 caffeinate로 깨어 있다가, (3) stock-dashboard/stock-briefing python 프로세스가 도는 동안 계속 깨어 있고, (4) 끝나면 종료해 Mac이 평소처럼 잠들게 둔다.
+
+| 기상 슬롯 | keeper | grace | 커버하는 job |
+|---|---|---|---|
+| 01:55 | wake-0156 | 45분 | 02:00 backtest-data, 02:30 preset-backtests(~5.5h, 프로세스 종료까지 유지) |
+| 03:55 | wake-0356 | 10분 | 일요일 04:00 forward-returns |
+| 06:55 | wake-0656 | 75분 | 07:00~07:30 dashboard 배치, 08:00 morning, 매월 1일 08:00 rebalancing |
+| 10:25 | wake-1026 | 10분 | 10:30 rotation-backtest |
+| 13:55 | wake-1356 | 10분 | 14:00 midday |
+| 20:55 | wake-2056 | 10분 | 21:00 preview |
+
+브리핑 wrapper도 끝날 때 `wake_chain.sh --schedule-only`를 호출해 체인을 한 번 더 보강한다. 로그: `logs/launchd/wake-YYYYMMDD.log`.
+
+**최초 1회 설정 (sudo 필요)**
+
+1. launchd에서는 비밀번호 입력이 불가하므로 pmset만 NOPASSWD 허용:
    ```bash
    sudo install -m 440 scripts/launchd/sudoers-pmset-briefing /etc/sudoers.d/pmset-briefing
    sudo visudo -c
